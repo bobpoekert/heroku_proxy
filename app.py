@@ -3,6 +3,7 @@ from functools import partial
 import socket
 import ctypes
 import os
+import traceback
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice = libc.splice
@@ -12,6 +13,9 @@ SPLICE_F_NONBLOCK = 0x02
 header_bytes = len('GET /')
 
 error_response = 'HTTP/1.1 400 Internal Error\r\nServer: Bogus 0\r\nConnection: Close\r\n\r\nInvalid Request'
+not_found_response = 'HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\nNot Found'
+
+paths = {'favicon.ico':not_found_response, '':not_found_response}
 
 def const(c):
     def res(*args):
@@ -64,14 +68,20 @@ class Request(object):
         self.left.read_until_regex(r'[ /]', self.handle_host)
 
     def handle_host(self, host):
+        if host[-1] == '/':
+            host = host[:-1]
         print host
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-        self.right = iostream.IOStream(sock)
-        try:
-            self.right.connect((host, 80), self.backend_connected)
-        except:
-            self.left.write(not_found_repsonse, self.left.close)
-            self.right.close()
+        if host in paths:
+            self.left.write(paths[host], self.left.close)
+        else:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+                self.right = iostream.IOStream(sock)
+                self.right.connect((host, 80), self.backend_connected)
+            except:
+                traceback.print_exc()
+                self.left.write(not_found_repsonse, self.left.close)
+                self.right.close()
 
     def backend_connected(self):
         self.right.write(self.prefix, self.get_headers)
