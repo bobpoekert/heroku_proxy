@@ -61,7 +61,7 @@ class Request(object):
             print data
             return
         self.prefix = data
-        stream.read_until_regex(r'[ /]', self.handle_host)
+        self.left.read_until_regex(r'[ /]', self.handle_host)
 
     def handle_host(self, host):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
