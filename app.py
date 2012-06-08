@@ -108,12 +108,12 @@ class Request(object):
         self.right.read_until('\r\n\r\n', self.proxy_headers_3)
 
     def proxy_headers_3(self, data):
-        print repr(data)
+        print repr(data[:-2])
         self.left.write(data[:-2], self.send_cors)
 
     def send_cors(self):
         print 'sending cors'
-        self.left.write('\r\nAccess-Control-Allow-Origin: *\r\n\r\n', self.start)
+        self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
 
     def start(self):
         print 'started'
