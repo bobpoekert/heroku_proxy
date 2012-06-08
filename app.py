@@ -64,6 +64,7 @@ class Request(object):
         self.left.read_until_regex(r'[ /]', self.handle_host)
 
     def handle_host(self, host):
+        print host
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self.right = iostream.IOStream(sock)
         try:
