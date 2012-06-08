@@ -86,18 +86,23 @@ class Request(object):
                 self.right.close()
 
     def backend_connected(self):
+        print 'backend connected'
         self.right.write(self.prefix, self.get_headers)
 
     def get_headers(self):
+        print 'got headers'
         self.right.read_until(r'\r\n\r\n', self.proxy_headers)
 
     def proxy_headers(self, headers):
+        print repr(headers)
         self.left.write(headers, self.send_cors)
 
     def send_cors(self):
+        print 'sending cors'
         self.left.write(r'\r\nAccess-Control-Allow-Origin: *\r\n\r\n', self.start)
 
     def start(self):
+        print 'started'
         self.right.writing = const(True)
         self.right._handle_write = self.set_right_ready
         self.left.reading = const(True)
