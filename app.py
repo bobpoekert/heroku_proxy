@@ -29,6 +29,10 @@ mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 def noop(*args):
     return
 
+def print_error(stream):
+    if stream.error:
+        print stream.error
+
 import json, time, base64
 def track_throughput():
     global amount_transferred
@@ -50,6 +54,7 @@ class Request(object):
 
     def __init__(self, stream, address):
         self.left = stream
+        self.left.set_close_callback(partial(print_error, self.left))
         self.source_address = address
         self.right = None
         self.prefix = None
@@ -78,6 +83,7 @@ class Request(object):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
+                self.right.set_close_callback(partial(print_error, self.right))
                 self.right.set_close_callback(self.left.close)
                 self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
