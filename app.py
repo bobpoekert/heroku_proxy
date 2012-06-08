@@ -2,6 +2,7 @@ from tornado import netutil, ioloop, iostream, httpclient
 from functools import partial
 import socket
 import ctypes
+import os
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice = libc.splice
