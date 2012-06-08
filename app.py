@@ -87,10 +87,11 @@ class Request(object):
 
     def backend_connected(self):
         print 'backend connected'
+        print repr(self.prefix)
         self.right.write(self.prefix, self.get_headers)
 
     def get_headers(self):
-        print 'got headers'
+        print 'get headers'
         self.right.read_until(r'\r\n\r\n', self.proxy_headers)
 
     def proxy_headers(self, headers):
