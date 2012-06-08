@@ -57,7 +57,8 @@ class Request(object):
 
     def handle_body(self, data):
         if data[-1] != '/':
-            stream.write(error_response, stream.close)
+            self.left.write(error_response, stream.close)
+            print data
             return
         self.prefix = data
         stream.read_until_regex(r'[ /]', self.handle_host)
