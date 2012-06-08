@@ -70,6 +70,7 @@ class Request(object):
     def handle_host(self, host):
         if host[-1] == '/':
             host = host[:-1]
+        host = host.strip()
         print repr(host)
         if host in paths:
             self.left.write(paths[host], self.left.close)
@@ -81,7 +82,7 @@ class Request(object):
                 self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
                 traceback.print_exc()
-                self.left.write(not_found_repsonse, self.left.close)
+                self.left.write(not_found_response, self.left.close)
                 self.right.close()
 
     def backend_connected(self):
