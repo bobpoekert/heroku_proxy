@@ -62,7 +62,7 @@ class Request(object):
     def handle_body(self, data):
         if data[-1] != '/':
             self.left.write(error_response, stream.close)
-            print data
+            print repr(data)
             return
         self.prefix = data
         self.left.read_until_regex(r'[ /]', self.handle_host)
@@ -70,7 +70,7 @@ class Request(object):
     def handle_host(self, host):
         if host[-1] == '/':
             host = host[:-1]
-        print host
+        print repr(host)
         if host in paths:
             self.left.write(paths[host], self.left.close)
         else:
@@ -78,7 +78,7 @@ class Request(object):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
                 self.right.set_close_callback(self.left.close)
-                self.right.connect((host, 80), self.backend_connected)
+                self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
                 traceback.print_exc()
                 self.left.write(not_found_repsonse, self.left.close)
