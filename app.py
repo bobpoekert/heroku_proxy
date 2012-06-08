@@ -88,7 +88,7 @@ class Request(object):
     def backend_connected(self):
         print 'backend connected'
         print repr(self.prefix)
-        self.right.write(self.prefix, self.get_headers)
+        self.right.write(self.prefix+' ', self.get_headers)
 
     def get_headers(self):
         print 'get headers'
@@ -103,7 +103,7 @@ class Request(object):
 
     def proxy_headers_3(self, data):
         print repr(data)
-        self.left.write(data, self.send_cors)
+        self.left.write(data[:-2], self.send_cors)
 
     def send_cors(self):
         print 'sending cors'
