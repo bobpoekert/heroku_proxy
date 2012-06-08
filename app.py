@@ -30,7 +30,7 @@ def track_throughput():
             'amount':amount_transferred,
             'time':int(time.time()),
             'token':mixpanel_token,
-            'host':host})
+            'host':host}})
     client = httpclient.AsyncHTTPClient()
     client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data))
     amount_transferred = 0
