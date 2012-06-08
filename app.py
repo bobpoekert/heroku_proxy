@@ -77,6 +77,7 @@ class Request(object):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
+                self.right.set_close_callback(self.left.close)
                 self.right.connect((host, 80), self.backend_connected)
             except:
                 traceback.print_exc()
