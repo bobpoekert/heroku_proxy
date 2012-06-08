@@ -1,0 +1,133 @@
+from tornado import netutil, ioloop, iostream, httpclient
+from functools import partial
+import socket
+import ctypes
+
+libc = ctypes.cdll.LoadLibrary('libc.so.6')
+splice = libc.splice
+
+SPLICE_F_NONBLOCK = 0x02
+
+header_bytes = len('GET /')
+
+error_response = 'HTTP/1.1 400 Internal Error\r\nServer: Bogus 0\r\nConnection: Close\r\n\r\nInvalid Request'
+
+def const(c):
+    def res(*args):
+        return c
+    return res
+
+amount_transferred = 0
+host = socket.gethostname()
+mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
+
+import json, time, base64
+def track_throughput():
+    global amount_transferred
+    data = json.dumps({
+        'event':'proxy_throughput',
+        'properties':{
+            'amount':amount_transferred,
+            'time':int(time.time()),
+            'token':mixpanel_token,
+            'host':host})
+    client = httpclient.AsyncHTTPClient()
+    client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data))
+    amount_transferred = 0
+
+mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1000)
+mixpanel_tracker.start()
+
+class Request(object):
+
+    def __init__(self, stream, address):
+        self.left = stream
+        self.source_address = address
+        self.right = None
+        self.prefix = None
+
+        self.left_ready = False
+        self.right_ready = False
+
+        self.left.read_bytes(header_bytes, self.handle_body)
+
+    def handle_body(self, data):
+        if data[-1] != '/':
+            stream.write(error_response, stream.close)
+            return
+        self.prefix = data
+        stream.read_until_regex(r'[ /]', self.handle_host)
+
+    def handle_host(self, host):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+        self.right = iostream.IOStream(sock)
+        try:
+            self.right.connect((host, 80), self.backend_connected)
+        except:
+            self.left.write(not_found_repsonse, self.left.close)
+            self.right.close()
+
+    def backend_connected(self):
+        self.right.write(self.prefix, self.get_headers)
+
+    def get_headers(self):
+        self.right.read_until(r'\r\n\r\n', self.proxy_headers)
+
+    def proxy_headers(self, headers):
+        self.left.write(headers, self.send_cors)
+
+    def send_cors(self):
+        self.left.write(r'\r\nAccess-Control-Allow-Origin: *\r\n\r\n', self.start)
+
+    def start(self):
+        self.right.writing = const(True)
+        self.right._handle_write = self.set_right_ready
+        self.left.reading = const(True)
+        self.left._handle_read = self.set_left_ready
+
+    def set_right_ready(self):
+        self.right_ready = True
+        if self.left_ready:
+            self.shunt()
+
+    def set_left_ready(self):
+        self.left_ready = True
+        if self.right_ready:
+            self.shunt()
+
+    def shunt(self):
+        global amount_transferred
+        self.prefix = None
+
+        code = splice(self.left.socket.fileno(), None,
+                self.right.socket.fileno(), None,
+                4096, SPLICE_F_NONBLOCK)
+
+        if code == 0 or code == -1:
+            self.right.close()
+            self.left.close()
+            return
+
+        amount_transferred += code
+
+        if self.left.closed():
+            self.right.close()
+            return
+
+        if self.right.closed():
+            self.left.close()
+            return
+
+        self.left_ready = False
+        self.right_ready = False
+
+class Server(netutil.TCPServer):
+
+    def handle_stream(self, stream, address):
+        Request(stream, address)
+
+if __name__ == '__main__':
+    server = Server()
+    server.listen(os.environ.get('PORT', 5000))
+    IOLoop.instance().start()
+
