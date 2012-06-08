@@ -92,7 +92,7 @@ class Request(object):
 
     def get_headers(self):
         print 'get headers'
-        self.left.read_until(r'\r\n\r\n', self.proxy_headers)
+        self.left.read_until('\r\n\r\n', self.proxy_headers)
 
     def proxy_headers(self, headers):
         print repr(headers)
@@ -100,7 +100,8 @@ class Request(object):
 
     def send_cors(self):
         print 'sending cors'
-        self.right.write(r'\r\nAccess-Control-Allow-Origin: *\r\n\r\n', self.start)
+        self.right.write('\r\n\r\n')
+        self.left.write('\r\nAccess-Control-Allow-Origin: *\r\n\r\n', self.start)
 
     def start(self):
         print 'started'
