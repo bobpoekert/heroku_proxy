@@ -22,6 +22,9 @@ amount_transferred = 0
 host = socket.gethostname()
 mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 
+def noop(*args):
+    return
+
 import json, time, base64
 def track_throughput():
     global amount_transferred
@@ -33,7 +36,7 @@ def track_throughput():
             'token':mixpanel_token,
             'host':host}})
     client = httpclient.AsyncHTTPClient()
-    client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data))
+    client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data), noop)
     amount_transferred = 0
 
 mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1000)
