@@ -102,6 +102,7 @@ class Request(object):
         self.right.read_until('\r\n\r\n', self.proxy_headers_3)
 
     def proxy_headers_3(self, data):
+        print repr(data)
         self.left.write(data, self.send_cors)
 
     def send_cors(self):
