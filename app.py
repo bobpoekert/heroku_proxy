@@ -7,9 +7,10 @@ import traceback
 import re
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
-splice = libc.splice
+splice_syscall = libc.splice
 
 SPLICE_F_NONBLOCK = 0x02
+SPLICE_F_MOVE = 0x01
 
 header_bytes = len('GET /')
 
@@ -46,6 +47,19 @@ def handle_close(stream, innerfunc=None):
             innerfunc()
     stream.set_close_callback(callback)
 
+def splice(left, right):
+    global amount_transferred
+    code = splice_syscall(left, 0, right, 0, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE)
+
+    print code
+
+    if code == -1:
+        raise OSError(get_errno(), 'socket error')
+
+    amount_transferred += code
+
+    return code
+
 import json, time, base64
 def track_throughput():
     global amount_transferred
@@ -67,13 +81,15 @@ class Request(object):
 
     def __init__(self, stream, address):
         self.left = stream
-        handle_close(self.left)
+        handle_close(self.left, self.right.close)
         self.source_address = address
         self.right = None
         self.prefix = None
 
         self.left_ready = False
         self.right_ready = False
+
+        self.pipe_read, self.pipe_write = os.pipe()
 
         self.left.read_bytes(header_bytes, self.handle_body)
 
@@ -134,49 +150,33 @@ class Request(object):
     def set_right_ready(self):
         if not self.right_ready:
             print 'right ready'
+            try:
+                splice(self.right.socket.fileno(), self.write_pipe)
+            except:
+                self.left.close()
+                self.right.close()
+                traceback.print_exc()
+                return
         self.right_ready = True
-        if self.left_ready:
-            self.shunt()
 
     def set_left_ready(self):
-        if not self.left_ready:
-            print 'left ready'
-        self.left_ready = True
         if self.right_ready:
-            self.shunt()
+            print 'shunt'
+            try:
+                splice(self.read_pipe, self.left.socket.fileno())
+            except StopIteration:
+                pass
+            except:
+                self.left.close()
+                self.right.close()
+                traceback.print_exc()
+                return
+            self.right_ready = False
 
-    def shunt(self):
-        print "shunt"
-        global amount_transferred
-        self.prefix = None
+    def __del__(self):
+        os.close(self.read_pipe)
+        os.close(self.write_pipe)
 
-        fileno_left = self.left.socket.fileno()
-        fileno_right = self.right.socket.fileno()
-        print fileno_left, fileno_right
-
-        code = splice(fileno_left, 0, fileno_right, 0, 4096, SPLICE_F_NONBLOCK)
-
-        print code
-
-        if code == 0 or code == -1:
-            if code == -1:
-                print "socket error: %s" % str(get_errno())
-            self.right.close()
-            self.left.close()
-            return
-
-        amount_transferred += code
-
-        if self.left.closed():
-            self.right.close()
-            return
-
-        if self.right.closed():
-            self.left.close()
-            return
-
-        self.left_ready = False
-        self.right_ready = False
 
 class Server(netutil.TCPServer):
 
