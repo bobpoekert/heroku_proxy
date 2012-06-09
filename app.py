@@ -163,6 +163,7 @@ class Request(object):
         self.left._handle_read = self.set_left_ready
 
     def set_right_ready(self):
+        print 'right'
         global amount_read
         if not self.right_ready:
             print 'right ready'
@@ -178,6 +179,7 @@ class Request(object):
         self.right_ready = True
 
     def set_left_ready(self):
+        print 'left'
         global amount_written
         if self.right_ready:
             print 'shunt'
