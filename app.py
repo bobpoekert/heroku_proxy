@@ -154,6 +154,9 @@ class Request(object):
         self.left.writing = self.writing
         self.left._handle_write = self.handle_write
 
+    def closed(self):
+        return self.right.closed() or self.left.closed()
+
     def reading(self):
         return not self.closed and not self.data_available
 
