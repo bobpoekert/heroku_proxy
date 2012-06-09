@@ -19,7 +19,6 @@ except:
     print 'pathconf failed'
     import resource
     chunk_size = resource.getpagesize()
-print chunk_size
 
 header = 'GET /'
 
@@ -153,6 +152,7 @@ class Request(object):
         self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
 
     def preflush(self):
+        print self.right._read_buffer_size
         if self.right._read_buffer_size > 0:
             empty_buffer = self.left._write_buffer
             self.left._write_buffer = self.right._read_buffer
