@@ -98,7 +98,7 @@ class Request(object):
         self.right = None
         self.prefix = None
 
-        self.right_ready = False
+        self.data_available = False
 
         read, write = os.pipe()
 
@@ -163,10 +163,9 @@ class Request(object):
         self.left._handle_write = self.set_left_ready
 
     def set_right_ready(self):
-        print 'right'
         global amount_read
-        if not self.right_ready:
-            print 'right ready'
+        if not self.data_available:
+            print 'reading'
             try:
                 amount_read += splice(self.right.socket.fileno(), self.pipe_write)
             except socket_error.EAGAIN:
@@ -176,13 +175,13 @@ class Request(object):
                 self.right.close()
                 traceback.print_exc()
                 return
-        self.right_ready = True
+        self.data_available = True
 
     def set_left_ready(self):
         print 'left'
         global amount_written
-        if self.right_ready:
-            print 'shunt'
+        if self.data_available:
+            print 'writing'
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
             except socket_error.EAGAIN:
@@ -192,7 +191,7 @@ class Request(object):
                 self.right.close()
                 traceback.print_exc()
                 return
-            self.right_ready = False
+            self.data_available = False
 
     def __del__(self):
         os.close(self.pipe_read)
