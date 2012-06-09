@@ -4,6 +4,7 @@ import socket
 import ctypes
 import os
 import traceback
+import re
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice = libc.splice
@@ -21,6 +22,8 @@ def const(c):
     def res(*args):
         return c
     return res
+
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
 
 amount_transferred = 0
 host = socket.gethostname()
@@ -51,7 +54,7 @@ def track_throughput():
     client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data), noop)
     amount_transferred = 0
 
-mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1000)
+mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1800000)
 mixpanel_tracker.start()
 
 class Request(object):
@@ -79,8 +82,9 @@ class Request(object):
     def handle_host(self, host):
         if host[-1] == '/':
             host = host[:-1]
-        host = host.strip()
+        host = re.sub(r'[^a-zA-Z0-9\.\-\_]', '', host)
         print repr(host)
+        self.host = host
         if host in paths:
             self.left.write(paths[host], self.left.close)
         else:
@@ -97,21 +101,20 @@ class Request(object):
     def backend_connected(self):
         print 'backend connected'
         print repr(self.prefix)
-        self.right.write(self.prefix+' ', self.get_headers)
+        self.right.write(self.prefix, self.get_header)
 
-    def get_headers(self):
+    def get_header(self, data=None):
         print 'get headers'
-        self.left.read_until('\r\n\r\n', self.proxy_headers)
+        if data == '\r\n':
+            self.right.write('Host: %s\r\n' % self.host)
+            self.right.write(data)
+            self.right.read_until('\r\n\r\n', self.proxy_headers)
+        else:
+            if data and (valid_headers.match(data) if ':' in data):
+                self.right.write(data)
+            self.left.read_until('\r\n', self.get_header)
 
-    def proxy_headers(self, headers):
-        print repr(headers)
-        self.right.write(headers, self.proxy_headers_2)
-
-    def proxy_headers_2(self):
-        self.right.read_until('\r\n\r\n', self.proxy_headers_3)
-
-    def proxy_headers_3(self, data):
-        print repr(data[:-2])
+    def proxy_headers(self, data):
         self.left.write(data[:-2])
         self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
 
