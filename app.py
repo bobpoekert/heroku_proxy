@@ -155,10 +155,10 @@ class Request(object):
         self.left._handle_write = self.handle_write
 
     def reading(self):
-        return not self.data_available
+        return not self.closed and not self.data_available
 
     def writing(self):
-        return self.data_available
+        return self.data_available and not self.closed()
 
     def maybe_close(self):
         if self.left.closed():
@@ -170,6 +170,7 @@ class Request(object):
 
     def handle_read(self):
         global amount_read
+        local_read = 0
 
         if self.maybe_close():
             return
@@ -177,7 +178,7 @@ class Request(object):
         if not self.data_available:
             print 'reading'
             try:
-                amount_read += splice(self.right.socket.fileno(), self.pipe_write)
+                local_read += splice(self.right.socket.fileno(), self.pipe_write)
             except socket_error.EAGAIN:
                 return
             except:
@@ -186,15 +187,16 @@ class Request(object):
                 traceback.print_exc()
                 return
 
-        if amount_read == 0:
+        if local_read == 0:
             self.duds += 1
-            if self.duds > 100:
+            if self.duds > 10:
                 self.right.close()
                 self.left.close()
                 return
         else:
             self.duds = 0
 
+        amount_read += local_read
         self.data_available = True
         self.handle_write()
 
@@ -210,7 +212,11 @@ class Request(object):
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
             except socket_error.EAGAIN:
-                return
+                self.duds += 1
+                if self.duds > 10:
+                    self.right.close()
+                    self.left.close()
+                    return
             except:
                 self.left.close()
                 self.right.close()
