@@ -81,7 +81,6 @@ class Request(object):
 
     def __init__(self, stream, address):
         self.left = stream
-        handle_close(self.left, self.right.close)
         self.source_address = address
         self.right = None
         self.prefix = None
@@ -89,7 +88,10 @@ class Request(object):
         self.left_ready = False
         self.right_ready = False
 
-        self.pipe_read, self.pipe_write = os.pipe()
+        read, write = os.pipe()
+
+        self.pipe_read = read
+        self.pipe_write = write
 
         self.left.read_bytes(header_bytes, self.handle_body)
 
@@ -114,6 +116,7 @@ class Request(object):
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
                 handle_close(self.right, self.left.close)
+                handle_close(self.left, self.right.close)
                 self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
                 traceback.print_exc()
