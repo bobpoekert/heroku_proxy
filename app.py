@@ -150,9 +150,11 @@ class Request(object):
         global amount_transferred
         self.prefix = None
 
-        code = splice(self.left.socket.fileno(), None,
-                self.right.socket.fileno(), None,
-                4096, SPLICE_F_NONBLOCK)
+        fileno_left = self.left.socket.fileno()
+        fileno_right = self.right.socket.fileno()
+        print fileno_left, fileno_right
+
+        code = splice(fileno_left, 0, fileno_right, 0, 4096, SPLICE_F_NONBLOCK)
 
         print code
 
