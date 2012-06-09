@@ -12,7 +12,10 @@ splice_syscall = libc.splice
 SPLICE_F_NONBLOCK = 0x02
 SPLICE_F_MOVE = 0x01
 
-header_bytes = len('GET /')
+import resource
+chunk_size = resource.getpagesize()
+
+header = 'GET /'
 
 error_response = 'HTTP/1.1 400 Internal Error\r\nServer: Bogus 0\r\nConnection: Close\r\n\r\nInvalid Request'
 not_found_response = 'HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\nNot Found'
@@ -26,7 +29,9 @@ def const(c):
 
 valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
 
-amount_transferred = 0
+amount_read = 0
+amount_written = 0
+
 host = socket.gethostname()
 mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 
@@ -48,34 +53,39 @@ def handle_close(stream, innerfunc=None):
     stream.set_close_callback(callback)
 
 def splice(left, right):
-    global amount_transferred
-    code = splice_syscall(left, 0, right, 0, 4096, SPLICE_F_NONBLOCK | SPLICE_F_MOVE)
+    total = 0
 
-    print code
+    while 1:
+        code = splice_syscall(left, 0, right, 0, chunk_size, SPLICE_F_NONBLOCK | SPLICE_F_MOVE)
 
-    if code == -1:
-        errno = get_errno()
-        if errno == 11: #EAGAIN
-            return 0
-        raise OSError(errno, 'socket error')
+        print code
 
-    amount_transferred += code
+        if code == -1:
+            errno = get_errno()
+            if errno == 11: #EAGAIN
+                break
+            raise OSError(errno, 'socket error')
 
-    return code
+        total += code
+
+        if code < chunk_size:
+            break
+
+    return total
 
 import json, time, base64
 def track_throughput():
-    global amount_transferred
+    global amount_written
     data = json.dumps({
         'event':'proxy_throughput',
         'properties':{
-            'amount':amount_transferred,
+            'amount':amount_written,
             'time':int(time.time()),
             'token':mixpanel_token,
             'host':host}})
     client = httpclient.AsyncHTTPClient()
     client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data), noop)
-    amount_transferred = 0
+    amount_written = 0
 
 mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1800000)
 mixpanel_tracker.start()
@@ -88,7 +98,6 @@ class Request(object):
         self.right = None
         self.prefix = None
 
-        self.left_ready = False
         self.right_ready = False
 
         read, write = os.pipe()
@@ -96,10 +105,10 @@ class Request(object):
         self.pipe_read = read
         self.pipe_write = write
 
-        self.left.read_bytes(header_bytes, self.handle_body)
+        self.left.read_bytes(len(header), self.handle_body)
 
     def handle_body(self, data):
-        if data[-1] != '/':
+        if data != header:
             self.left.write(error_response, stream.close)
             print repr(data)
             return
@@ -154,10 +163,11 @@ class Request(object):
         self.left._handle_read = self.set_left_ready
 
     def set_right_ready(self):
+        global amount_read
         if not self.right_ready:
             print 'right ready'
             try:
-                splice(self.right.socket.fileno(), self.pipe_write)
+                amount_read += splice(self.right.socket.fileno(), self.pipe_write)
             except:
                 self.left.close()
                 self.right.close()
@@ -166,12 +176,11 @@ class Request(object):
         self.right_ready = True
 
     def set_left_ready(self):
+        global amount_written
         if self.right_ready:
             print 'shunt'
             try:
-                splice(self.pipe_read, self.left.socket.fileno())
-            except StopIteration:
-                pass
+                amount_written += splice(self.pipe_read, self.left.socket.fileno())
             except:
                 self.left.close()
                 self.right.close()
