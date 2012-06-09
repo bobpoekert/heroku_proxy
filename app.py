@@ -149,7 +149,7 @@ class Request(object):
     def proxy_headers(self, data):
         print repr(data)
         self.left.write(data[:-2])
-        self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
+        self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.preflush)
 
     def preflush(self):
         print 'preflush'
