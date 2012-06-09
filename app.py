@@ -132,13 +132,15 @@ class Request(object):
         self.left._handle_read = self.set_left_ready
 
     def set_right_ready(self):
-        print 'right ready'
+        if not self.right_ready:
+            print 'right ready'
         self.right_ready = True
         if self.left_ready:
             self.shunt()
 
     def set_left_ready(self):
-        print 'left ready'
+        if not self.left_ready:
+            print 'left ready'
         self.left_ready = True
         if self.right_ready:
             self.shunt()
