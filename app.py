@@ -32,6 +32,12 @@ mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 def noop(*args):
     return
 
+errno_loc = libc.__errno_location
+errno_loc.restype = ctypes.POINTER(ctypes.c_int)
+
+def get_errno():
+    return errno_loc().contents.value
+
 def handle_close(stream, innerfunc=None):
     def callback():
         if stream.error:
@@ -104,7 +110,6 @@ class Request(object):
         self.right.write(self.prefix, self.get_header)
 
     def get_header(self, data=None):
-        print repr(data)
         if data == '\r\n':
             self.right.write('Host: %s\r\n' % self.host)
             self.right.write(data)
@@ -115,6 +120,7 @@ class Request(object):
             self.left.read_until('\r\n', self.get_header)
 
     def proxy_headers(self, data):
+        print repr(data)
         self.left.write(data[:-2])
         self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
 
@@ -126,11 +132,13 @@ class Request(object):
         self.left._handle_read = self.set_left_ready
 
     def set_right_ready(self):
+        print 'right ready'
         self.right_ready = True
         if self.left_ready:
             self.shunt()
 
     def set_left_ready(self):
+        print 'left ready'
         self.left_ready = True
         if self.right_ready:
             self.shunt()
@@ -147,6 +155,8 @@ class Request(object):
         print code
 
         if code == 0 or code == -1:
+            if code == -1:
+                print "socket error: %s" % str(get_errno())
             self.right.close()
             self.left.close()
             return
