@@ -29,9 +29,13 @@ mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 def noop(*args):
     return
 
-def print_error(stream):
-    if stream.error:
-        print stream.error
+def handle_close(stream, innerfunc=None):
+    def callback():
+        if stream.error:
+            print stream.error
+        if innerfunc:
+            innerfunc()
+    stream.set_close_callback(callback)
 
 import json, time, base64
 def track_throughput():
@@ -54,7 +58,7 @@ class Request(object):
 
     def __init__(self, stream, address):
         self.left = stream
-        self.left.set_close_callback(partial(print_error, self.left))
+        handle_close(self.left)
         self.source_address = address
         self.right = None
         self.prefix = None
@@ -83,8 +87,7 @@ class Request(object):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
-                self.right.set_close_callback(partial(print_error, self.right))
-                self.right.set_close_callback(self.left.close)
+                handle_close(self.right, self.left.close)
                 self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
                 traceback.print_exc()
