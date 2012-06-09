@@ -21,7 +21,7 @@ error_codes = {
         32:EPIPE,
         11:EAGAIN}
 
-def raise_socket_error(code, text):
+def raise_socket_error(code, text='socket error'):
     try:
         return error_codes[code](code, text)
     except KeyError:
