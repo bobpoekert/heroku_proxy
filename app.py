@@ -104,7 +104,7 @@ class Request(object):
         self.right.write(self.prefix, self.get_header)
 
     def get_header(self, data=None):
-        print 'get headers'
+        print repr(data)
         if data == '\r\n':
             self.right.write('Host: %s\r\n' % self.host)
             self.right.write(data)
