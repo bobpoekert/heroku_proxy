@@ -45,14 +45,6 @@ errno_loc.restype = ctypes.POINTER(ctypes.c_int)
 def get_errno():
     return errno_loc().contents.value
 
-def handle_close(stream, innerfunc=None):
-    def callback():
-        if stream.error:
-            print stream.error
-        if innerfunc:
-            innerfunc()
-    stream.set_close_callback(callback)
-
 def splice(left, right):
     total = 0
 
@@ -109,7 +101,7 @@ class Request(object):
 
     def handle_body(self, data):
         if data != header:
-            self.left.write(error_response, stream.close)
+            self.left.write(error_response, self.left.close)
             print repr(data)
             return
         self.prefix = data
@@ -127,8 +119,8 @@ class Request(object):
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
                 self.right = iostream.IOStream(sock)
-                handle_close(self.right, self.left.close)
-                handle_close(self.left, self.right.close)
+                self.right.set_close_callback(self.left.close)
+                self.left.set_close_callback(self.right.close)
                 self.right.connect((socket.gethostbyname(host), 80), self.backend_connected)
             except:
                 traceback.print_exc()
@@ -157,10 +149,16 @@ class Request(object):
 
     def start(self):
         print 'started'
-        self.right.reading = const(True)
+        self.right.reading = self.reading
         self.right._handle_read = self.handle_read
-        self.left.writing = const(True)
+        self.left.writing = self.writing
         self.left._handle_write = self.handle_write
+
+    def reading(self):
+        return not self.data_available
+
+    def writing(self):
+        return self.data_available
 
     def handle_read(self):
         global amount_read
@@ -195,6 +193,8 @@ class Request(object):
             self.data_available = False
 
     def __del__(self):
+        self.left.close()
+        self.right.close()
         os.close(self.pipe_read)
         os.close(self.pipe_write)
 
