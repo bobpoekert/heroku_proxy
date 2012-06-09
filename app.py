@@ -54,7 +54,10 @@ def splice(left, right):
     print code
 
     if code == -1:
-        raise OSError(get_errno(), 'socket error')
+        errno = get_errno()
+        if errno == 11: #EAGAIN
+            return 0
+        raise OSError(errno, 'socket error')
 
     amount_transferred += code
 
