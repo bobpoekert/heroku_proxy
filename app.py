@@ -62,7 +62,9 @@ def splice(left, right):
         print code
 
         if code == -1:
-            socket_error.raise_socket_error(get_errno())
+            errno = get_errno()
+            print errno
+            socket_error.raise_socket_error(errno)
 
         total += code
 
