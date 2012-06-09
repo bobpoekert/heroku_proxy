@@ -185,6 +185,16 @@ class Request(object):
                 self.right.close()
                 traceback.print_exc()
                 return
+
+        if amount_read == 0:
+            self.duds += 1
+            if self.duds > 100:
+                self.right.close()
+                self.left.close()
+                return
+        else:
+            self.duds = 0
+
         self.data_available = True
         self.handle_write()
 
