@@ -1,4 +1,4 @@
-from tornado import netutil, ioloop, iostream, httpclient
+from tornado import netutil, ioloop, iostream, httpclient, stack_context
 from functools import partial
 import socket
 import ctypes
@@ -146,6 +146,18 @@ class Request(object):
         print repr(data)
         self.left.write(data[:-2])
         self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.start)
+
+    def preflush(self):
+        if self.right._read_buffer_size > 0:
+            empty_buffer = self.left._write_buffer
+            self.left._write_buffer = self.right._read_buffer
+            self.right._read_buffer = empty_buffer
+            self.right._read_buffer_size = 0
+            self.left._write_callback = stack_context.wrap(self.start)
+            self.left._handle_write()
+            self.left._add_io_state(self.left.io_loop.WRITE)
+        else:
+            self.start()
 
     def start(self):
         print 'started'
