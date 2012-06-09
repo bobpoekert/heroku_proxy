@@ -157,10 +157,10 @@ class Request(object):
 
     def start(self):
         print 'started'
-        self.right.writing = const(True)
-        self.right._handle_write = self.set_right_ready
-        self.left.reading = const(True)
-        self.left._handle_read = self.set_left_ready
+        self.right.reading = const(True)
+        self.right._handle_read = self.set_right_ready
+        self.left.writing = const(True)
+        self.left._handle_write = self.set_left_ready
 
     def set_right_ready(self):
         print 'right'
