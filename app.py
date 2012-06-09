@@ -151,7 +151,7 @@ class Request(object):
         if not self.right_ready:
             print 'right ready'
             try:
-                splice(self.right.socket.fileno(), self.write_pipe)
+                splice(self.right.socket.fileno(), self.pipe_write)
             except:
                 self.left.close()
                 self.right.close()
@@ -163,7 +163,7 @@ class Request(object):
         if self.right_ready:
             print 'shunt'
             try:
-                splice(self.read_pipe, self.left.socket.fileno())
+                splice(self.pipe_read, self.left.socket.fileno())
             except StopIteration:
                 pass
             except:
@@ -174,8 +174,8 @@ class Request(object):
             self.right_ready = False
 
     def __del__(self):
-        os.close(self.read_pipe)
-        os.close(self.write_pipe)
+        os.close(self.pipe_read)
+        os.close(self.pipe_write)
 
 
 class Server(netutil.TCPServer):
