@@ -158,11 +158,11 @@ class Request(object):
     def start(self):
         print 'started'
         self.right.reading = const(True)
-        self.right._handle_read = self.set_right_ready
+        self.right._handle_read = self.handle_read
         self.left.writing = const(True)
-        self.left._handle_write = self.set_left_ready
+        self.left._handle_write = self.handle_write
 
-    def set_right_ready(self):
+    def handle_read(self):
         global amount_read
         if not self.data_available:
             print 'reading'
@@ -176,8 +176,9 @@ class Request(object):
                 traceback.print_exc()
                 return
         self.data_available = True
+        self.handle_write()
 
-    def set_left_ready(self):
+    def handle_write(self):
         print 'left'
         global amount_written
         if self.data_available:
@@ -185,7 +186,7 @@ class Request(object):
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
             except socket_error.EAGAIN:
-                pass
+                return
             except:
                 self.left.close()
                 self.right.close()
