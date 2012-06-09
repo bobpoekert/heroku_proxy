@@ -110,7 +110,7 @@ class Request(object):
             self.right.write(data)
             self.right.read_until('\r\n\r\n', self.proxy_headers)
         else:
-            if data and (valid_headers.match(data) if ':' in data):
+            if data and (':' not in data or valid_headers.match(data)):
                 self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
 
