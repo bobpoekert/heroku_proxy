@@ -160,8 +160,20 @@ class Request(object):
     def writing(self):
         return self.data_available
 
+    def maybe_close(self):
+        if self.left.closed():
+            self.right.close()
+            return True
+        elif self.right.closed():
+            self.left.close()
+            return True
+
     def handle_read(self):
         global amount_read
+
+        if self.maybe_close():
+            return
+
         if not self.data_available:
             print 'reading'
             try:
@@ -179,6 +191,10 @@ class Request(object):
     def handle_write(self):
         print 'left'
         global amount_written
+
+        if self.maybe_close():
+            return
+
         if self.data_available:
             print 'writing'
             try:
