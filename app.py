@@ -5,6 +5,7 @@ import ctypes
 import os
 import traceback
 import re
+import socket_error
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice_syscall = libc.splice
@@ -61,10 +62,7 @@ def splice(left, right):
         print code
 
         if code == -1:
-            errno = get_errno()
-            if errno == 11: #EAGAIN
-                break
-            raise OSError(errno, 'socket error')
+            socket_error.raise_socket_error(get_errno())
 
         total += code
 
@@ -168,6 +166,8 @@ class Request(object):
             print 'right ready'
             try:
                 amount_read += splice(self.right.socket.fileno(), self.pipe_write)
+            except socket_error.EAGAIN:
+                return
             except:
                 self.left.close()
                 self.right.close()
@@ -181,6 +181,8 @@ class Request(object):
             print 'shunt'
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
+            except socket_error.EAGAIN:
+                pass
             except:
                 self.left.close()
                 self.right.close()
