@@ -13,8 +13,13 @@ splice_syscall = libc.splice
 SPLICE_F_NONBLOCK = 0x02
 SPLICE_F_MOVE = 0x01
 
-import resource
-chunk_size = resource.getpagesize()
+try:
+    chunk_size = os.pathconf('.', os.pathconf_names['PC_PIPE_BUF'])
+except:
+    print 'pathconf failed'
+    import resource
+    chunk_size = resource.getpagesize()
+print chunk_size
 
 header = 'GET /'
 
@@ -170,7 +175,7 @@ class Request(object):
         return self.right.closed() or self.left.closed()
 
     def reading(self):
-        return not self.closed and not self.data_available
+        return not self.data_available and not self.closed()
 
     def writing(self):
         return self.data_available and not self.closed()
