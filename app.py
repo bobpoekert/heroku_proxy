@@ -133,12 +133,15 @@ class Request(object):
             self.shunt()
 
     def shunt(self):
+        print "shunt"
         global amount_transferred
         self.prefix = None
 
         code = splice(self.left.socket.fileno(), None,
                 self.right.socket.fileno(), None,
                 4096, SPLICE_F_NONBLOCK)
+
+        print code
 
         if code == 0 or code == -1:
             self.right.close()
