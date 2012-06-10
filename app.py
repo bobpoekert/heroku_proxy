@@ -199,7 +199,7 @@ class Request(object):
 
         if local_read == 0:
             self.duds += 1
-            if self.duds > 10:
+            if self.duds > 100:
                 self.right.close()
                 self.left.close()
                 return
@@ -219,9 +219,10 @@ class Request(object):
         if self.data_available:
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
+                self.duds = 0
             except socket_error.EAGAIN:
                 self.duds += 1
-                if self.duds > 10:
+                if self.duds > 100:
                     self.right.close()
                     self.left.close()
                     return
