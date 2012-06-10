@@ -122,7 +122,6 @@ class Request(object):
                 self.right = iostream.IOStream(sock)
                 self.right.set_close_callback(self.left.close)
                 self.left.set_close_callback(self.right.close)
-                self.right.write = debug(self.right.write)
                 self.right.connect((socket.gethostbyname(host), 80), self.get_header)
             except:
                 traceback.print_exc()
