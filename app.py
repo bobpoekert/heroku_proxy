@@ -135,6 +135,7 @@ class Request(object):
             self.right.read_until('\r\n\r\n', self.proxy_headers)
         else:
             if data:
+                print data
                 if ':' not in data:
                     if self.prefix[-1] == ' ' or data[0] == ' ':
                         self.right.write(self.prefix+data)
