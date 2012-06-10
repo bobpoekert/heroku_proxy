@@ -136,7 +136,7 @@ class Request(object):
         else:
             if data:
                 if ':' not in data:
-                    self.right.write(self.prefix+data)
+                    self.right.write('%s %s' % (self.prefix, data))
                 elif valid_headers.match(data):
                     self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
