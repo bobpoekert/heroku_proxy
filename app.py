@@ -106,6 +106,7 @@ class Request(object):
         if data != header:
             self.left.write(error_response, self.left.close)
             return
+        print data
         self.prefix = data
         self.left.read_until_regex(r'[ /]', self.handle_host)
 
@@ -135,7 +136,6 @@ class Request(object):
             self.right.read_until('\r\n\r\n', self.proxy_headers)
         else:
             if data:
-                print data
                 if ':' not in data:
                     if self.prefix[-1] == ' ' or data[0] == ' ':
                         self.right.write(self.prefix+data)
