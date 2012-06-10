@@ -137,7 +137,7 @@ class Request(object):
         else:
             if data:
                 if ':' not in data:
-                    if self.prefix == 'GET /':
+                    if data == 'HTTP/1.1\r\n':
                         self.prefix += ' '
                     self.right.write(self.prefix+data)
                 elif valid_headers.match(data):
