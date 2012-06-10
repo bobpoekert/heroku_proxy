@@ -32,8 +32,7 @@ def const(c):
         return c
     return res
 
-#valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
-valid_headers = re.compile('^[^X]')
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
 
 amount_read = 0
 amount_written = 0
@@ -236,8 +235,10 @@ class Request(object):
             self.data_available = False
 
     def __del__(self):
-        self.left.close()
-        self.right.close()
+        if not self.left.closed():
+            self.left.close()
+        if not self.right.closed():
+            self.right.close()
         os.close(self.pipe_read)
         os.close(self.pipe_write)
 
