@@ -32,7 +32,8 @@ def const(c):
         return c
     return res
 
-valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
+#valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
+valid_headers = re.compile('^[^X]')
 
 amount_read = 0
 amount_written = 0
