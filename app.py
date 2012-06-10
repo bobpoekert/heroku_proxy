@@ -32,7 +32,7 @@ def const(c):
         return c
     return res
 
-valid_headers = re.compile('^(User-Agent|Connection|Accept.*):')
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|Referer|TE|Upgrade):')
 
 amount_read = 0
 amount_written = 0
@@ -132,8 +132,7 @@ class Request(object):
 
     def get_header(self, data=None):
         if data == '\r\n':
-            self.right.write('Host: %s\r\n' % self.host)
-            self.right.write(data)
+            self.right.write('Host: %s\r\n\r\n' % self.host)
             self.right.read_until('\r\n\r\n', self.proxy_headers)
         else:
             if data and (':' not in data or valid_headers.match(data)):
