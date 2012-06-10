@@ -55,8 +55,6 @@ def splice(left, right):
     while 1:
         code = splice_syscall(left, 0, right, 0, chunk_size, SPLICE_F_NONBLOCK | SPLICE_F_MOVE)
 
-        print code
-
         if code == -1:
             errno = get_errno()
             print errno
@@ -106,7 +104,6 @@ class Request(object):
     def handle_body(self, data):
         if data != header:
             self.left.write(error_response, self.left.close)
-            print repr(data)
             return
         self.prefix = data
         self.left.read_until_regex(r'[ /]', self.handle_host)
@@ -115,7 +112,6 @@ class Request(object):
         if host[-1] == '/':
             host = host[:-1]
         host = re.sub(r'[^a-zA-Z0-9\.\-\_]', '', host)
-        print repr(host)
         self.host = host
         if host in paths:
             self.left.write(paths[host], self.left.close)
@@ -132,8 +128,6 @@ class Request(object):
                 self.right.close()
 
     def backend_connected(self):
-        print 'backend connected'
-        print repr(self.prefix)
         self.right.write(self.prefix, self.get_header)
 
     def get_header(self, data=None):
@@ -147,13 +141,10 @@ class Request(object):
             self.left.read_until('\r\n', self.get_header)
 
     def proxy_headers(self, data):
-        print repr(data)
         self.left.write(data[:-2])
         self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.preflush)
 
     def preflush(self):
-        print 'preflush'
-        print 'flushing %d' % self.right._read_buffer_size
         if self.right._read_buffer_size > 0:
             empty_buffer = self.left._write_buffer
             self.left._write_buffer = self.right._read_buffer
@@ -166,7 +157,6 @@ class Request(object):
             self.start()
 
     def start(self):
-        print 'started'
         self.right.reading = self.reading
         self.right._handle_read = self.handle_read
         self.left.writing = self.writing
@@ -197,7 +187,6 @@ class Request(object):
             return
 
         if not self.data_available:
-            print 'reading'
             try:
                 local_read += splice(self.right.socket.fileno(), self.pipe_write)
             except socket_error.EAGAIN:
@@ -222,14 +211,12 @@ class Request(object):
         self.handle_write()
 
     def handle_write(self):
-        print 'left'
         global amount_written
 
         if self.maybe_close():
             return
 
         if self.data_available:
-            print 'writing'
             try:
                 amount_written += splice(self.pipe_read, self.left.socket.fileno())
             except socket_error.EAGAIN:
