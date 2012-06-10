@@ -127,17 +127,17 @@ class Request(object):
                 self.left.write(not_found_response, self.left.close)
                 self.right.close()
 
-    def backend_connected(self):
-        self.right.write(self.prefix, self.get_header)
-
     def get_header(self, data=None):
         if data == '\r\n':
             self.right.write('Host: %s\r\n\r\n' % self.host)
             self.right.read_until('\r\n\r\n', self.proxy_headers)
         else:
-            if data and (':' not in data or valid_headers.match(data)):
-                print repr(data)
-                self.right.write(data)
+            if data:
+                if ':' not in data:
+                    self.right.write(prefix+data)
+                elif valid_headers.match(data):
+                    print repr(data)
+                    self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
 
     def proxy_headers(self, data):
@@ -234,10 +234,13 @@ class Request(object):
             self.data_available = False
 
     def __del__(self):
-        if not self.left.closed():
-            self.left.close()
-        if not self.right.closed():
-            self.right.close()
+        try:
+            if not self.left.closed():
+                self.left.close()
+            if not self.right.closed():
+                self.right.close()
+        except:
+            pass
         os.close(self.pipe_read)
         os.close(self.pipe_write)
 
