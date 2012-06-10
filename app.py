@@ -106,7 +106,7 @@ class Request(object):
         if data != header:
             self.left.write(error_response, self.left.close)
             return
-        print data
+        print repr(data)
         self.prefix = data
         self.left.read_until_regex(r'[ /]', self.handle_host)
 
