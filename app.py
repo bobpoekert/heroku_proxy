@@ -27,9 +27,10 @@ not_found_response = 'HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\nNot Fou
 
 paths = {'favicon.ico':not_found_response, '':not_found_response}
 
-def const(c):
-    def res(*args):
-        return c
+def debug(fn):
+    def res(*args, **kwargs):
+        print repr(args), repr(kwargs)
+        return fn(*args, **kwargs)
     return res
 
 valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|Referer|TE|Upgrade):')
@@ -121,6 +122,7 @@ class Request(object):
                 self.right = iostream.IOStream(sock)
                 self.right.set_close_callback(self.left.close)
                 self.left.set_close_callback(self.right.close)
+                self.right.write = debug(self.right.write)
                 self.right.connect((socket.gethostbyname(host), 80), self.get_header)
             except:
                 traceback.print_exc()
@@ -136,7 +138,6 @@ class Request(object):
                 if ':' not in data:
                     self.right.write(self.prefix+data)
                 elif valid_headers.match(data):
-                    print repr(data)
                     self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
 
