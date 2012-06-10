@@ -137,6 +137,7 @@ class Request(object):
         else:
             if data:
                 if ':' not in data:
+                    print (repr(self.prefix), repr(data))
                     if self.prefix[-1] == ' ' or data[0] == ' ':
                         self.right.write(self.prefix+data)
                     else:
