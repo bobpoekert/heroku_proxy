@@ -23,7 +23,7 @@ except:
 header = 'GET /'
 
 def make_response(status, body, content_type='text/plain', extra_headers=None):
-    res = 'HTTP/1.1 %s\r\n'
+    res = 'HTTP/1.1 %s\r\n' % status
     res += 'Server: Bogus\r\n'
     res += 'Connection: close\r\n'
     res += 'Content-Type: %s\r\n' % content_type
