@@ -22,10 +22,22 @@ except:
 
 header = 'GET /'
 
-error_response = 'HTTP/1.1 400 Internal Error\r\nServer: Bogus 0\r\nConnection: Close\r\n\r\nInvalid Request'
-not_found_response = 'HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\nNot Found'
+def make_response(status, body, content_type='text/plain', extra_headers=None):
+    res = 'HTTP/1.1 %s\r\n'
+    res += 'Server: Bogus\r\n'
+    res += 'Connection: Close\r\n'
+    res += 'Content-Type: %s\r\n' % content_type
+    if extra_headers:
+        res += extra_headers
+    res += '\r\n'
+    res += body
+    return res
 
-paths = {'favicon.ico':not_found_response, '':not_found_response}
+error_response = make_response('400 Bad Request', 'Invalid Request')
+not_found_response = make_response('404 Not Found', 'Not Found')
+front_page = make_response('200 OK', open('front_page.html.gz', 'r').read(), content_type='text/html', extra_headers='Content-Encoding: gzip\r\n')
+
+paths = {'favicon.ico':not_found_response, '':front_page}
 
 def debug(fn):
     def res(*args, **kwargs):
