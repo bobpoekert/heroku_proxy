@@ -25,8 +25,9 @@ header = 'GET /'
 def make_response(status, body, content_type='text/plain', extra_headers=None):
     res = 'HTTP/1.1 %s\r\n'
     res += 'Server: Bogus\r\n'
-    res += 'Connection: Close\r\n'
+    res += 'Connection: close\r\n'
     res += 'Content-Type: %s\r\n' % content_type
+    res += 'Content-Length: %d\r\n' % len(body)
     if extra_headers:
         res += extra_headers
     res += '\r\n'
