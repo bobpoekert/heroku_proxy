@@ -44,7 +44,7 @@ def file_response(fname, cache_forever=False, content_type='text/html'):
 error_response = make_response('400 Bad Request', 'Invalid Request')
 not_found_response = make_response('404 Not Found', 'Not Found')
 front_page = file_response('front_page.html.gz')
-api_js = file_response('api.js.gz', cache_forever=True)
+api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
 
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
