@@ -34,11 +34,20 @@ def make_response(status, body, content_type='text/plain', extra_headers=None):
     res += body
     return res
 
+def file_response(fname, cache_forever=False, content_type='text/html'):
+    data = open(fname, 'r').read()
+    extra_headers = 'Content-Encoding: gzip\r\n'
+    if cache_forever:
+        extra_headers += 'Cache-Control: max-age=31556926\r\n'
+    return make_response('200 OK', data, content_type=content_type, extra_headers=extra_headers)
+
 error_response = make_response('400 Bad Request', 'Invalid Request')
 not_found_response = make_response('404 Not Found', 'Not Found')
-front_page = make_response('200 OK', open('front_page.html.gz', 'r').read(), content_type='text/html', extra_headers='Content-Encoding: gzip\r\n')
+front_page = file_response('front_page.html.gz')
+api_js = file_response('api.js.gz', cache_forever=True)
+iframe = file_response('iframe.html', cache_forever=True)
 
-paths = {'favicon.ico':not_found_response, '':front_page}
+paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
 def debug(fn):
     def res(*args, **kwargs):
