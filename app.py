@@ -64,7 +64,7 @@ amount_read = 0
 amount_written = 0
 
 host = socket.gethostname()
-mixpanel_token = 'REDACTED'
+mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 
 def noop(*args):
     return
