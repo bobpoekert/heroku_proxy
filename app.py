@@ -50,10 +50,11 @@ front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
 
-preflight_response = make_response('200 OK', '', content_type=None, extra_headers='\r\n'.join([
-    'Access-Control-Allow-Origin: *',
-    'Access-Control-Allow-Methods: GET, OPTIONS',
-    'Access-Control-Allow-Headers: *']))
+def preflight_response(headers):
+    return make_response('200 OK', '', content_type=None, extra_headers='\r\n'.join([
+        'Access-Control-Allow-Origin: *',
+        'Access-Control-Allow-Headers: %s' % headers,
+        'Access-Control-Allow-Methods: GET, OPTIONS']))
 
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
@@ -141,13 +142,24 @@ class Request(object):
             self.left.read_until_regex(r'[ /]', self.handle_host)
         elif data == opt_header:
             print 'OPTIONS'
-            self.left.read_until('\r\n\r\n', self.write_preflight)
+            self.left.read_until('\r\n', self.write_preflight)
         else:
             self.left.write(error_response, self.close_left)
 
-    def write_preflight(self, arg):
-        print 'writing options response'
-        self.left.write(preflight_response, self.close_left)
+    def write_preflight(self, line):
+        if not line:
+            self._write_preflight('*')
+            return
+        if 'Access-Control-Request-Headers:' in line:
+            k, headers = line.split(':')
+            self._write_preflight(headers)
+            return
+        self.left.read_until('\r\n', self.write_preflight)
+
+    def _write_preflight(self, origin):
+        res = preflight_response(origin)
+        print res
+        self.left.write(res, self.close_left)
 
     def close_left(self, *args):
         print 'closing connection'
