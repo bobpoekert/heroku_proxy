@@ -142,9 +142,9 @@ class Request(object):
         elif data == opt_header:
             print 'preflight'
             print preflight_response
-            self.left.write(preflight_response)
+            self.left.write(preflight_response, self.left.close)
         else:
-            self.left.write(error_response)
+            self.left.write(error_response, self.left.close)
 
     def handle_host(self, host):
         if host[-1] == '/':
