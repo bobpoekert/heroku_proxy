@@ -142,7 +142,7 @@ class Request(object):
         else:
             self.left.write(error_response, self.left.close)
 
-    def write_preflight(self):
+    def write_preflight(self, arg):
         self.left.write(preflight_response, self.left.close)
 
     def handle_host(self, host):
