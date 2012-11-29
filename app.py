@@ -143,11 +143,16 @@ class Request(object):
             print 'OPTIONS'
             self.left.read_until('\r\n\r\n', self.write_preflight)
         else:
-            self.left.write(error_response, self.left.close)
+            self.left.write(error_response, self.close_left)
 
     def write_preflight(self, arg):
         print 'writing options response'
-        self.left.write(preflight_response, self.left.close)
+        self.left.write(preflight_response, self.close_left)
+
+    def close_left(self, *args):
+        print 'closing connection'
+        print args
+        self.left.close()
 
     def handle_host(self, host):
         if host[-1] == '/':
