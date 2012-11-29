@@ -49,13 +49,16 @@ iframe = file_response('iframe.html.gz', cache_forever=True)
 
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
-def debug(fn):
-    def res(*args, **kwargs):
-        print repr(args), repr(kwargs)
-        return fn(*args, **kwargs)
-    return res
+#def debug(fn):
+#    def res(*args, **kwargs):
+#        print repr(args), repr(kwargs)
+#        return fn(*args, **kwargs)
+#    return res
 
-valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|Referer|TE|Upgrade):')
+def debug(fn):
+    return fn
+
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
 amount_read = 0
 amount_written = 0
@@ -128,7 +131,6 @@ class Request(object):
         if data != header:
             self.left.write(error_response, self.left.close)
             return
-        print repr(data)
         self.prefix = data
         self.left.read_until_regex(r'[ /]', self.handle_host)
 
