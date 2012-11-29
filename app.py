@@ -7,6 +7,8 @@ import traceback
 import re
 import socket_error
 
+# tricking heroku into deploying the app
+
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice_syscall = libc.splice
 
