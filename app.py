@@ -21,6 +21,7 @@ except:
     chunk_size = resource.getpagesize()
 
 header = 'GET /'
+opt_header = 'OPTIO'
 
 def make_response(status, body, content_type='text/plain', extra_headers=None):
     res = 'HTTP/1.1 %s\r\n' % status
@@ -128,7 +129,7 @@ class Request(object):
         self.left.read_bytes(len(header), self.handle_body)
 
     def handle_body(self, data):
-        if data != header:
+        if data != header and data != opt_header:
             self.left.write(error_response, self.left.close)
             return
         self.prefix = data
@@ -170,7 +171,7 @@ class Request(object):
 
     def proxy_headers(self, data):
         self.left.write(data[:-2])
-        self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.preflush)
+        self.left.write('Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\n\r\n', self.preflush)
 
     def preflush(self):
         if self.right._read_buffer_size > 0:
