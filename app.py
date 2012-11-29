@@ -23,12 +23,14 @@ except:
 header = 'GET /'
 opt_header = 'OPTIO'
 
-def make_response(status, body, content_type='text/plain', extra_headers=None):
+def make_response(status, body, content_type='text/plain', extra_headers=None, length=True):
     res = 'HTTP/1.1 %s\r\n' % status
     res += 'Server: Bogus\r\n'
     res += 'Connection: close\r\n'
-    res += 'Content-Type: %s\r\n' % content_type
-    res += 'Content-Length: %d\r\n' % len(body)
+    if content_type:
+        res += 'Content-Type: %s\r\n' % content_type
+    if length:
+        res += 'Content-Length: %d\r\n' % len(body)
     if extra_headers:
         res += extra_headers
     res += '\r\n'
@@ -48,7 +50,7 @@ front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
 
-preflight_response = make_response('200 OK', '', extra_headers='\r\n'.join([
+preflight_response = make_response('200 OK', '', length=False, content_type=None, extra_headers='\r\n'.join([
     'Access-Control-Allow-Origin: *',
     'Access-Control-Allow-Methods: GET, OPTIONS',
     'Access-Control-Allow-Headers: *']))
