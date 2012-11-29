@@ -48,6 +48,11 @@ front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
 
+preflight_response = make_response('200 OK', '', extra_headers='\r\n'.join([
+    'Access-Control-Allow-Origin: *',
+    'Access-Control-Allow-Methods: GET, OPTIONS',
+    'Access-Control-Allow-Headers: *']))
+
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
 def debug(fn):
@@ -129,11 +134,16 @@ class Request(object):
         self.left.read_bytes(len(header), self.handle_body)
 
     def handle_body(self, data):
-        if data != header and data != opt_header:
+        if data == header:
+            self.prefix = data
+            self.left.read_until_regex(r'[ /]', self.handle_host)
+        elif data == opt_header:
+            self.left.read_until('\r\n\r\n', self.write_preflight)
+        else:
             self.left.write(error_response, self.left.close)
-            return
-        self.prefix = data
-        self.left.read_until_regex(r'[ /]', self.handle_host)
+
+    def write_preflight(self):
+        self.left.write(preflight_response, self.left.close)
 
     def handle_host(self, host):
         if host[-1] == '/':
