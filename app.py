@@ -140,11 +140,13 @@ class Request(object):
             self.prefix = data
             self.left.read_until_regex(r'[ /]', self.handle_host)
         elif data == opt_header:
+            print 'OPTIONS'
             self.left.read_until('\r\n\r\n', self.write_preflight)
         else:
             self.left.write(error_response, self.left.close)
 
     def write_preflight(self, arg):
+        print 'writing options response'
         self.left.write(preflight_response, self.left.close)
 
     def handle_host(self, host):
