@@ -51,14 +51,14 @@ iframe = file_response('iframe.html.gz', cache_forever=True)
 
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
-#def debug(fn):
-#    def res(*args, **kwargs):
-#        print repr(args), repr(kwargs)
-#        return fn(*args, **kwargs)
-#    return res
-
 def debug(fn):
-    return fn
+    def res(*args, **kwargs):
+        print repr(args), repr(kwargs)
+        return fn(*args, **kwargs)
+    return res
+
+#def debug(fn):
+#    return fn
 
 valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
