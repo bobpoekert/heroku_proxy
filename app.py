@@ -2,7 +2,7 @@ from tornado import netutil, ioloop, iostream, httpclient, stack_context
 from functools import partial
 import socket
 import ctypes
-import os
+import os, sys
 import traceback
 import re
 import socket_error
@@ -309,7 +309,10 @@ class Request(object):
 class Server(netutil.TCPServer):
 
     def handle_stream(self, stream, address):
-        Request(stream, address)
+        try:
+            Request(stream, address)
+        except OSError:
+            sys.exit(1)
 
 if __name__ == '__main__':
     server = Server()
