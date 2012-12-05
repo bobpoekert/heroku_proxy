@@ -2,7 +2,7 @@ from tornado import netutil, ioloop, iostream, httpclient, stack_context
 from functools import partial
 import socket
 import ctypes
-import os
+import os, sys
 import traceback
 import re
 import socket_error
@@ -21,13 +21,16 @@ except:
     chunk_size = resource.getpagesize()
 
 header = 'GET /'
+opt_header = 'OPTIO'
 
-def make_response(status, body, content_type='text/plain', extra_headers=None):
+def make_response(status, body, content_type='text/plain', extra_headers=None, length=True):
     res = 'HTTP/1.1 %s\r\n' % status
     res += 'Server: Bogus\r\n'
     res += 'Connection: close\r\n'
-    res += 'Content-Type: %s\r\n' % content_type
-    res += 'Content-Length: %d\r\n' % len(body)
+    if content_type:
+        res += 'Content-Type: %s\r\n' % content_type
+    if length:
+        res += 'Content-Length: %d\r\n' % len(body)
     if extra_headers:
         res += extra_headers
     res += '\r\n'
@@ -47,6 +50,12 @@ front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
 
+def preflight_response(headers):
+    return make_response('200 OK', '', content_type=None, extra_headers='\r\n'.join([
+        'Access-Control-Allow-Origin: *',
+        'Access-Control-Allow-Headers: %s' % headers,
+        'Access-Control-Allow-Methods: GET, OPTIONS']))
+
 paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
 
 def debug(fn):
@@ -55,7 +64,10 @@ def debug(fn):
         return fn(*args, **kwargs)
     return res
 
-valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|Referer|TE|Upgrade):')
+#def debug(fn):
+#    return fn
+
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
 amount_read = 0
 amount_written = 0
@@ -125,12 +137,34 @@ class Request(object):
         self.left.read_bytes(len(header), self.handle_body)
 
     def handle_body(self, data):
-        if data != header:
-            self.left.write(error_response, self.left.close)
+        if data == header:
+            self.prefix = data
+            self.left.read_until_regex(r'[ /]', self.handle_host)
+        elif data == opt_header:
+            print 'OPTIONS'
+            self.left.read_until('\r\n', self.write_preflight)
+        else:
+            self.left.write(error_response, self.close_left)
+
+    def write_preflight(self, line):
+        if not line:
+            self._write_preflight('*')
             return
-        print repr(data)
-        self.prefix = data
-        self.left.read_until_regex(r'[ /]', self.handle_host)
+        if 'Access-Control-Request-Headers:' in line:
+            k, headers = line.split(':')
+            self._write_preflight(headers)
+            return
+        self.left.read_until('\r\n', self.write_preflight)
+
+    def _write_preflight(self, origin):
+        res = preflight_response(origin)
+        print res
+        self.left.write(res, self.close_left)
+
+    def close_left(self, *args):
+        print 'closing connection'
+        print args
+        self.left.close()
 
     def handle_host(self, host):
         if host[-1] == '/':
@@ -146,6 +180,7 @@ class Request(object):
                 self.right.set_close_callback(self.left.close)
                 self.left.set_close_callback(self.right.close)
                 self.right.write = debug(self.right.write)
+                print host
                 self.right.connect((socket.gethostbyname(host), 80), self.get_header)
             except:
                 traceback.print_exc()
@@ -168,7 +203,7 @@ class Request(object):
 
     def proxy_headers(self, data):
         self.left.write(data[:-2])
-        self.left.write('Access-Control-Allow-Origin: *\r\n\r\n', self.preflush)
+        self.left.write('Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\n\r\n', self.preflush)
 
     def preflush(self):
         if self.right._read_buffer_size > 0:
@@ -274,7 +309,10 @@ class Request(object):
 class Server(netutil.TCPServer):
 
     def handle_stream(self, stream, address):
-        Request(stream, address)
+        try:
+            Request(stream, address)
+        except OSError:
+            sys.exit(1)
 
 if __name__ == '__main__':
     server = Server()
