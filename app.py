@@ -49,6 +49,7 @@ not_found_response = make_response('404 Not Found', 'Not Found')
 front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
+robots_txt = file_response('robots.txt')
 
 def preflight_response(headers):
     return make_response('200 OK', '', content_type=None, extra_headers='\r\n'.join([
@@ -56,16 +57,21 @@ def preflight_response(headers):
         'Access-Control-Allow-Headers: %s' % headers,
         'Access-Control-Allow-Methods: GET, OPTIONS']))
 
-paths = {'favicon.ico':not_found_response, '':front_page, 'iframe.html':iframe, 'api.js':api_js}
-
-def debug(fn):
-    def res(*args, **kwargs):
-        print repr(args), repr(kwargs)
-        return fn(*args, **kwargs)
-    return res
+paths = {
+    'favicon.ico':not_found_response,
+    '':front_page,
+    'iframe.html':iframe,
+    'api.js':api_js,
+    'robots.txt':robots_txt}
 
 #def debug(fn):
-#    return fn
+#    def res(*args, **kwargs):
+#        print repr(args), repr(kwargs)
+#        return fn(*args, **kwargs)
+#    return res
+
+def debug(fn):
+    return fn
 
 valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
@@ -73,7 +79,6 @@ amount_read = 0
 amount_written = 0
 
 host = socket.gethostname()
-mixpanel_token = '7fb5000c304c26e32ed1b6744cea1ddd'
 
 def noop(*args):
     return
@@ -92,7 +97,6 @@ def splice(left, right):
 
         if code == -1:
             errno = get_errno()
-            print errno
             socket_error.raise_socket_error(errno)
 
         total += code
@@ -101,23 +105,6 @@ def splice(left, right):
             break
 
     return total
-
-import json, time, base64
-def track_throughput():
-    global amount_written
-    data = json.dumps({
-        'event':'proxy_throughput',
-        'properties':{
-            'amount':amount_written,
-            'time':int(time.time()),
-            'token':mixpanel_token,
-            'host':host}})
-    client = httpclient.AsyncHTTPClient()
-    client.fetch('http://api.mixpanel.com/track/?data=%s' % base64.b64encode(data), noop)
-    amount_written = 0
-
-mixpanel_tracker = ioloop.PeriodicCallback(track_throughput, 1800000)
-mixpanel_tracker.start()
 
 class Request(object):
 
@@ -141,7 +128,6 @@ class Request(object):
             self.prefix = data
             self.left.read_until_regex(r'[ /]', self.handle_host)
         elif data == opt_header:
-            print 'OPTIONS'
             self.left.read_until('\r\n', self.write_preflight)
         else:
             self.left.write(error_response, self.close_left)
@@ -158,12 +144,9 @@ class Request(object):
 
     def _write_preflight(self, origin):
         res = preflight_response(origin)
-        print res
         self.left.write(res, self.close_left)
 
     def close_left(self, *args):
-        print 'closing connection'
-        print args
         self.left.close()
 
     def handle_host(self, host):
@@ -180,7 +163,6 @@ class Request(object):
                 self.right.set_close_callback(self.left.close)
                 self.left.set_close_callback(self.right.close)
                 self.right.write = debug(self.right.write)
-                print host
                 self.right.connect((socket.gethostbyname(host), 80), self.get_header)
             except:
                 traceback.print_exc()
