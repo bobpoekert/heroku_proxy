@@ -49,7 +49,7 @@ not_found_response = make_response('404 Not Found', 'Not Found')
 front_page = file_response('front_page.html.gz')
 api_js = file_response('api.js.gz', cache_forever=True, content_type='text/javascript')
 iframe = file_response('iframe.html.gz', cache_forever=True)
-robots_txt = file_response('robots.txt')
+robots_txt = file_response('robots.txt.gz')
 
 def preflight_response(headers):
     return make_response('200 OK', '', content_type=None, extra_headers='\r\n'.join([
