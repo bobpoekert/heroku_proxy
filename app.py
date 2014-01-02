@@ -113,6 +113,7 @@ class Request(object):
         self.source_address = address
         self.right = None
         self.prefix = None
+        self.duds = 0
 
         self.data_available = False
 
