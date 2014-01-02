@@ -114,6 +114,7 @@ class Request(object):
         self.right = None
         self.prefix = None
         self.duds = 0
+        self.headers = []
 
         self.data_available = False
 
@@ -174,15 +175,17 @@ class Request(object):
         if data == '\r\n':
             self.right.write('Host: %s\r\n\r\n' % self.host)
             self.right.read_until('\r\n\r\n', self.proxy_headers)
+            print '\n'.join(self.headers)
         else:
             if data:
-                if ':' not in data:
+                if ':' in data:
+                    if valid_headers.match(data):
+                        self.right.write(data)
+                    self.headers.append(data)
+                else:
                     if data == 'HTTP/1.1\r\n':
                         self.prefix += ' '
                     self.right.write(self.prefix+data)
-                elif valid_headers.match(data):
-                    print data
-                    self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
 
     def proxy_headers(self, data):
