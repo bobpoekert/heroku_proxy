@@ -181,6 +181,7 @@ class Request(object):
                         self.prefix += ' '
                     self.right.write(self.prefix+data)
                 elif valid_headers.match(data):
+                    print data
                     self.right.write(data)
             self.left.read_until('\r\n', self.get_header)
 
