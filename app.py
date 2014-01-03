@@ -77,7 +77,7 @@ paths = {
 def debug(fn):
     return fn
 
-valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
+valid_headers = re.compile('^(User-Agent|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
 amount_read = 0
 amount_written = 0
@@ -200,7 +200,7 @@ class Request(object):
 
     def proxy_headers(self, data):
         self.left.write(data[:-2])
-        self.left.write('Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\n\r\n', self.preflush)
+        self.left.write('Connection: close\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\n\r\n', self.preflush)
 
     def preflush(self):
         if self.right._read_buffer_size > 0:

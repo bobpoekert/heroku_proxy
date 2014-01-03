@@ -1,4 +1,4 @@
 distribute==0.6.24
-tornado==2.3
+tornado==3.1.1
 wsgiref==0.1.2
 pycares
