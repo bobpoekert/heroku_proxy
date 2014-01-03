@@ -7,6 +7,9 @@ import traceback
 import re
 import socket_error
 
+netutil.Resolver.configure('tornado.platform.caresresolver.CaresResolver')
+resolver = netutil.Resolver()
+
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice_syscall = libc.splice
 
@@ -159,23 +162,27 @@ class Request(object):
         if host in paths:
             self.left.write(paths[host], self.left.close)
         else:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-                self.right = iostream.IOStream(sock)
-                self.right.set_close_callback(self.left.close)
-                self.left.set_close_callback(self.right.close)
-                self.right.write = debug(self.right.write)
-                self.right.connect((socket.gethostbyname(host), 80), self.get_header)
-            except:
-                traceback.print_exc()
-                self.left.write(not_found_response, self.left.close)
-                self.right.close()
+            resolver.resolve(host, callback=self.got_ip)
+
+    def got_ip(self, addrinfo):
+        try:
+            sockaddr = addrinfo[0][0]
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            self.right = iostream.IOStream(sock)
+            self.right.set_close_callback(self.left.close)
+            self.left.set_close_callback(self.right.close)
+            self.right.write = debug(self.right.write)
+            self.right.connect(af, self.get_header)
+        except:
+            traceback.print_exc()
+            self.left.write(not_found_response, self.left.close)
+            self.right.close()
 
     def get_header(self, data=None):
         if data == '\r\n':
             self.right.write('Host: %s\r\n\r\n' % self.host)
             self.right.read_until('\r\n\r\n', self.proxy_headers)
-            print '\n'.join(h for h in self.headers if h)
+            print '\n'.join(self.headers)
             self.heaaders = []
         else:
             if data:
@@ -183,7 +190,7 @@ class Request(object):
                     if valid_headers.match(data):
                         self.right.write(data)
                     if len(self.headers) < 100:
-                        self.headers.append(data)
+                        self.headers.append(data.strip())
                 else:
                     if data == 'HTTP/1.1\r\n':
                         self.prefix += ' '
