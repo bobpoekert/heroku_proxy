@@ -1,4 +1,5 @@
 from tornado import netutil, ioloop, iostream, httpclient, stack_context
+from tornado.netutil import Resolver
 from functools import partial
 import socket
 import ctypes
@@ -7,8 +8,8 @@ import traceback
 import re
 import socket_error
 
-netutil.Resolver.configure('tornado.platform.caresresolver.CaresResolver')
-resolver = netutil.Resolver()
+Resolver.configure('tornado.platform.caresresolver.CaresResolver')
+resolver = Resolver()
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
 splice_syscall = libc.splice
