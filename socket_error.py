@@ -1,4 +1,3 @@
-
 class EPERM(OSError):
     pass
 
@@ -23,6 +22,6 @@ error_codes = {
 
 def raise_socket_error(code, text='socket error'):
     try:
-        return error_codes[code](code, text)
+        raise error_codes[code](code, text)
     except KeyError:
-        return OSError(code, text)
+        raise OSError(code, text)

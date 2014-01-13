@@ -77,7 +77,7 @@ paths = {
 def debug(fn):
     return fn
 
-valid_headers = re.compile('^(User-Agent|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
+valid_headers = re.compile('^(User-Agent|Connection|Accept.*|Authorization|If\-.*|Pragma|Range|TE|Upgrade):')
 
 amount_read = 0
 amount_written = 0
@@ -178,6 +178,18 @@ class Request(object):
             traceback.print_exc()
             self.left.write(not_found_response, self.left.close)
             self.right.close()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+                self.right = iostream.IOStream(sock)
+                self.right.set_close_callback(self.left.close)
+                self.left.set_close_callback(self.right.close)
+                self.right.write = debug(self.right.write)
+                print host
+                self.right.connect((socket.gethostbyname(host), 80), self.get_header)
+            except:
+                traceback.print_exc()
+                self.left.write(not_found_response, self.left.close)
+                self.right.close()
 
     def get_header(self, data=None):
         if data == '\r\n':
