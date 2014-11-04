@@ -1,5 +1,4 @@
 import ctypes, os, socket
-from tornado import ioloop, iostream
 
 
 libc = ctypes.cdll.LoadLibrary('libc.so.6')
